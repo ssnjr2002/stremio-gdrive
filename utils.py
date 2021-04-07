@@ -50,11 +50,12 @@ class gdrive:
         self.hosturl = None
         self.accessToken = None
         self.actoken_expiry = datetime.now()
-        self.token = os.environ.get('TOKEN')
+        self.token = json.loads(os.environ.get('TOKEN'))
 
         with open('token.json', 'w') as token_json:
-            token_json.write(self.token)
+            json.dump(self.token, token_json)
 
+        self.token = json.loads(self.token)
         creds = Credentials.from_authorized_user_file('token.json')
         self.drive_instance = build('drive', 'v3', credentials=creds)
 
