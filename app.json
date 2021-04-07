@@ -1,0 +1,17 @@
+{
+  "name": "stremio-gdrive",
+  "description": "GDrive video addon for stremio.",
+  "keywords": ["gdrive", "stremio"],
+  "repository": "https://github.com/ssnjrthegr8/stremio-gdrive",
+  "stack": "heroku-20",
+  "env": {
+    "TOKEN": {
+      "description": "Contents of token.json",
+      "required": false
+    },
+    "CF_PROXY_URL": {
+      "description": "The url of the proxy you deployed on cloudfare workers, remove trailing '/' if any.",
+      "value": "https://copy.paste.url.without.trailing.slash.like.this.workers.dev"
+    }
+  }
+}
