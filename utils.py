@@ -47,7 +47,7 @@ class meta:
 class gdrive:
     def __init__(self):
         self.query = None
-        self.hosturl = None
+        self.cf_proxy_url = None
         self.accessToken = None
         self.actoken_expiry = datetime.now()
         self.token = json.loads(os.environ.get('TOKEN'))
@@ -135,7 +135,7 @@ class gdrive:
             m.get_string('🎞;%resolution 🎥;%codec 🌈;%bitDepth;bit 🔊;%audio 💿;%quality 👤;%encoder')
 
             title = f"{name}\n💾 {gib_size:.3f} GiB ☁️ {drive_name}\n{m.formatted}"
-            url = f"{self.hosturl}/load?session={get_session_str(file_id)}"
+            url = f"{self.cf_proxy_url}/load?session={get_session_str(file_id)}"
 
             out.append({'title': title, 'url': url})
         return out
