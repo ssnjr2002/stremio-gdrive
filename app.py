@@ -62,7 +62,7 @@ def addon_stream(type, id):
 
 if __name__ == '__main__':
     gd = gdrive()
-    gd.cf_proxy_url = os.environ.get('HEROKU_APP_NAME')
+    gd.cf_proxy_url = os.environ.get('CF_PROXY_URL')
 
     port = os.environ.get('PORT')
     app.run(threaded=True, debug=True, host="0.0.0.0", port=port)
