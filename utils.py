@@ -55,7 +55,6 @@ class gdrive:
         with open('token.json', 'w') as token_json:
             json.dump(self.token, token_json)
 
-        self.token = json.loads(self.token)
         creds = Credentials.from_authorized_user_file('token.json')
         self.drive_instance = build('drive', 'v3', credentials=creds)
 
