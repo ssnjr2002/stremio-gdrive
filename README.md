@@ -21,33 +21,28 @@
 12. Now do step 4 again.
 13. Click Create Credentials > OAuth client ID.
 14. Choose application type as Desktop, name it whatever you want and click create.
-15. The newly created credential appears under "OAuth 2.0 Client IDs." Click the download button to the right of the newly-created OAuth 2.0 Client ID.
+15. The newly created credential appears under "OAuth 2.0 Client IDs." Click the download button to the right of the newly-created OAuth 2.0 Client ID. We will get a client_secret.json file, we will need this for the next step.
 
-### Creating the CF Proxy
+### Creating the CF Proxy and obtaining the token
 
-1. Go to https://dash.cloudflare.com/ log in or sign up.
-2. Open the Workers option.
-3. Create your sub-domain or continue if already done.
-4. Select the Free Plan. Click on Create a Worker. You can rename the workers at top of the page.
-5. Copy the [code](https://raw.githubusercontent.com/ssnjrthegr8/stremio-gdrive/main/cf_proxy.js).
-6. Paste it in the box and hit save and deploy.
+1. Use the colab notebook to easily obtain the token and the required code for the cloudflare proxy: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ssnjrthegr8/stremio-gdrive/blob/master/GetToken.ipynb)
 
-### Getting the token:
-
-Use the colab notebook below to easily obtain the token:
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ssnjrthegr8/stremio-gdrive/blob/master/GetToken.ipynb)
-
-Copy the token, it should look something like this: 
+2. Run the notebook. Copy the js code and copy the token string for later when we deploy the heroku backend, the token should look something like this:
 
 `{"token": "jhgdfgdhgfh", "refresh_token": "1//sdhgbfdhghd", "token_uri": "https://oauth2.googleapis.com/token", "client_id": "hsdgfjhgfsd.apps.googleusercontent.com", "client_secret": "gfsdfsdgf", "scopes": ["https://www.googleapis.com/auth/drive"]}`
+
+3. Go to https://dash.cloudflare.com/ log in or sign up.
+4. Open the Workers option.
+5. Create your sub-domain or continue if already done.
+6. Select the Free Plan. Click on Create a Worker. You can rename the workers at top of the page.
+7. In the `Script{}` box you will see some code, delete all that and paste the js code that you obtained in step 2 there.
 
 ### Deploying to heroku:
 
 [![Deploy to Heroku](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/ssnjrthegr8/stremio-gdrive.git)
 
 1. Hit the deploy button.
-2. Paste the token in the token field.
+2. Paste the token string in the token field.
 3. Copy your cloudflare proxy url and paste it in the cf proxy url field. The url should not have a '/' at the end, it would look something like this: `https://copy.paste.url.without.trailing.slash.like.this.workers.dev`
 4. Hit deploy.
 
