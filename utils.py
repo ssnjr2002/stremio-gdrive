@@ -1,9 +1,7 @@
 import os
 import PTN
 import json
-import base64
-import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
@@ -125,14 +123,10 @@ class gdrive:
             return f"{name}\n💾 {gib_size:.3f} GiB ☁️ {drive_name}\n{m.formatted}"
 
         def get_url():
-            def get_session_str():
-                session_dict = {'access_token': self.get_actoken(),
-                                'file_id': file_id}
-                session_json = json.dumps(session_dict)
-                return base64.urlsafe_b64encode(session_json.encode()).decode()
-            return f"{self.cf_proxy_url}/load?session={get_session_str()}"
+            return f"{self.cf_proxy_url}/load/{file_id}"
 
         out = []
+        start_time = datetime.now()
         self.search(query)
 
         for obj in self.results:
@@ -142,21 +136,7 @@ class gdrive:
             m = meta(name)
             out.append({'name': get_stream_name(),
                         'title': get_title(), 'url': get_url()})
+
+        time_taken = (datetime.now() - start_time).total_seconds()
+        print(f'Fetched stream(s) in {time_taken:.3f}s')
         return out
-
-    def get_actoken(self):
-        body = {"client_id": self.token['client_id'],
-                "client_secret": self.token['client_secret'],
-                "refresh_token": self.token['refresh_token'],
-                "grant_type": "refresh_token"}
-
-        if self.actoken_expiry <= datetime.now():
-            oauth_resp = requests.post(
-                'https://www.googleapis.com/oauth2/v4/token', json=body).json()
-
-            self.accessToken = oauth_resp['access_token']
-            self.actoken_expiry = datetime.now() + timedelta(
-                seconds=oauth_resp['expires_in'])
-            print(f'Fetched new accessToken {self.actoken_expiry}.')
-
-        return self.accessToken
