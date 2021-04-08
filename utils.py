@@ -25,7 +25,7 @@ class meta:
         def get_val(x, y):
             formatted = ''
             for word in x.split(y):
-                if word[0] == '%':
+                if len(word) and word[0] == '%':
                     string = getattr(self, word[1:], '')
                     if string:
                         formatted += f'{string} '
@@ -117,27 +117,31 @@ class gdrive:
             return self.results
 
     def get_streams(self, query):
-        def get_session_str(file_id):
-            session_dict = {'access_token': self.get_actoken(),
-                            'file_id': file_id}
-            session_json = json.dumps(session_dict)
-            return base64.urlsafe_b64encode(session_json.encode()).decode()
+        def get_stream_name():
+            return m.get_string(f'GDrive \n;%quality \n;%resolution')
+
+        def get_title():
+            m.get_string('🎥;%codec 🌈;%bitDepth;bit 🔊;%audio 👤;%encoder')
+            return f"{name}\n💾 {gib_size:.3f} GiB ☁️ {drive_name}\n{m.formatted}"
+
+        def get_url():
+            def get_session_str():
+                session_dict = {'access_token': self.get_actoken(),
+                                'file_id': file_id}
+                session_json = json.dumps(session_dict)
+                return base64.urlsafe_b64encode(session_json.encode()).decode()
+            return f"{self.cf_proxy_url}/load?session={get_session_str()}"
 
         out = []
         self.search(query)
 
         for obj in self.results:
-            size, name = int(obj['size']), obj['name']
+            gib_size, name = int(obj['size']) / 1073741824, obj['name']
             file_id, drive_name = obj['id'], obj['driveId']
-            gib_size = size / 1073741824
 
             m = meta(name)
-            m.get_string('🎞;%resolution 🎥;%codec 🌈;%bitDepth;bit 🔊;%audio 💿;%quality 👤;%encoder')
-
-            title = f"{name}\n💾 {gib_size:.3f} GiB ☁️ {drive_name}\n{m.formatted}"
-            url = f"{self.cf_proxy_url}/load?session={get_session_str(file_id)}"
-
-            out.append({'title': title, 'url': url})
+            out.append({'name': get_stream_name(),
+                        'title': get_title(), 'url': get_url()})
         return out
 
     def get_actoken(self):
@@ -153,5 +157,6 @@ class gdrive:
             self.accessToken = oauth_resp['access_token']
             self.actoken_expiry = datetime.now() + timedelta(
                 seconds=oauth_resp['expires_in'])
+            app.logger.info(f'Fetched new accessToken.')
 
         return self.accessToken
