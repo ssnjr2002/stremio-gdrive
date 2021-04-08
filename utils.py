@@ -157,6 +157,6 @@ class gdrive:
             self.accessToken = oauth_resp['access_token']
             self.actoken_expiry = datetime.now() + timedelta(
                 seconds=oauth_resp['expires_in'])
-            app.logger.info(f'Fetched new accessToken.')
+            print(f'Fetched new accessToken {self.actoken_expiry}.')
 
         return self.accessToken
