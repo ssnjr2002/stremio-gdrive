@@ -38,16 +38,12 @@ class meta:
                 self.formatted += get_val(segment, ';')
             else:
                 self.formatted += get_val(segment, ' ')
-
         return self.formatted
 
 
 class gdrive:
     def __init__(self):
-        self.query = None
         self.cf_proxy_url = None
-        self.accessToken = None
-        self.actoken_expiry = datetime.now()
         self.token = json.loads(os.environ.get('TOKEN'))
 
         with open('token.json', 'w') as token_json:
@@ -77,42 +73,43 @@ class gdrive:
 
     def get_drive_names(self):
         def callback(request_id, response, exception):
-            res_no = int(request_id) - 1
-            try:
-                self.results[res_no]['driveId'] = response['name']
-            except TypeError:
-                pass
+            self.drive_names[response.get('id')] = response.get('name')
 
+        self.drive_names = {}
         batch = self.drive_instance.new_batch_http_request()
+        drives = self.drive_instance.drives()
+
         for result in self.results:
-            driveid = result['driveId']
-            drives = self.drive_instance.drives()
-            batch_inst = drives.get(driveId=driveid, fields='name')
+            driveid = result.get('driveId')
+            if not driveid:
+                result['driveId'] = 'MyDrive'
+                self.drive_names['MyDrive'] = 'MyDrive'
+                continue
+            batch_inst = drives.get(driveId=driveid, fields='name, id')
             batch.add(batch_inst, callback=callback)
+        
         batch.execute()
+        return self.drive_names
 
     def search(self, query):
         self.results = []
         self.query = self.drive_q(query)
         self.max_results = 200
 
-        unique_ids = []
+        response = self.file_list(
+            'id, name, size, driveId, md5Checksum')
 
-        while True:
-            response = self.file_list(
-                'id, name, size, driveId, md5Checksum')
-
+        if response:
+            unique_ids = []
             for obj in response['files']:
-                md5, did = obj.get('md5Checksum'), obj['driveId']
-                unique_id = f"{did}__{md5}"
-
+                unique_id = f"{obj.get('md5Checksum')}__{obj.get('driveId')}"
                 if unique_id not in unique_ids:
                     obj.pop('md5Checksum')
                     unique_ids.append(unique_id)
                     self.results.append(obj)
 
             self.get_drive_names()
-            return self.results
+        return self.results
 
     def get_streams(self, query):
         def get_stream_name():
@@ -130,8 +127,8 @@ class gdrive:
         self.search(query)
 
         for obj in self.results:
-            gib_size, name = int(obj['size']) / 1073741824, obj['name']
-            file_id, drive_name = obj['id'], obj['driveId']
+            gib_size, name, file_id = int(obj['size']) / 1073741824, obj['name'], obj['id']
+            drive_name = self.drive_names[obj['driveId']]
 
             m = meta(name)
             out.append({'name': get_stream_name(),
