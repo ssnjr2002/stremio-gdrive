@@ -5,7 +5,7 @@
 
 ## Instructions:
 
-### Getting the client_secrets.json:
+### Getting the client_secret.json
 
 1. Go to https://console.cloud.google.com/projectcreate
 2. Name the project whatever you want and click create. 
@@ -25,9 +25,11 @@
 
 ### Creating the CF Proxy and obtaining the token
 
-1. Use the colab notebook to easily obtain the token and the required code for the cloudflare proxy: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ssnjrthegr8/stremio-gdrive/blob/master/GetToken.ipynb)
+1. Use the colab notebook to easily obtain the token and the required code for the cloudflare proxy: 
 
-2. Run the notebook. Copy the js code and copy the token string for later when we deploy the heroku backend, the token should look something like this:
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ssnjrthegr8/stremio-gdrive/blob/main/Get%20Token%20and%20CF%20Proxy%20Code.ipynb)
+
+2. Run the notebook. Login with your google account. Copy the js code and copy the token string for later when we deploy the heroku backend, the token should look something like this:
 
 `{"token": "jhgdfgdhgfh", "refresh_token": "1//sdhgbfdhghd", "token_uri": "https://oauth2.googleapis.com/token", "client_id": "hsdgfjhgfsd.apps.googleusercontent.com", "client_secret": "gfsdfsdgf", "scopes": ["https://www.googleapis.com/auth/drive"]}`
 
@@ -43,7 +45,7 @@
 
 1. Hit the deploy button.
 2. Paste the token string in the token field.
-3. Copy your cloudflare proxy url and paste it in the cf proxy url field. The url should not have a '/' at the end, it would look something like this: `https://copy.paste.url.without.trailing.slash.like.this.workers.dev`
+3. Copy your cloudflare proxy worker url and paste it in the cf proxy url field.
 4. Hit deploy.
 
 ### Adding addon to Stremio:
