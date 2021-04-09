@@ -73,7 +73,8 @@ class gdrive:
 
     def get_drive_names(self):
         def callback(request_id, response, exception):
-            self.drive_names[response.get('id')] = response.get('name')
+            if response:
+                self.drive_names[response.get('id')] = response.get('name')
 
         self.drive_names = {}
         batch = self.drive_instance.new_batch_http_request()
@@ -85,9 +86,10 @@ class gdrive:
                 result['driveId'] = 'MyDrive'
                 self.drive_names['MyDrive'] = 'MyDrive'
                 continue
+            self.drive_names[driveid] = driveid
             batch_inst = drives.get(driveId=driveid, fields='name, id')
             batch.add(batch_inst, callback=callback)
-        
+
         batch.execute()
         return self.drive_names
 
