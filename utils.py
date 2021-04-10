@@ -1,6 +1,7 @@
 import os
 import PTN
 import json
+import requests
 from datetime import datetime
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
@@ -41,8 +42,21 @@ class meta:
         return self.formatted
 
 
+class cinemeta:
+    def __init__(self, type, id):
+        id_split = id.split(':')
+        url = f"https://v3-cinemeta.strem.io/meta/{type}/{id_split[0]}.json"
+        results = requests.get(url).json().get('meta')
+
+        self.name = ' '.join(results['slug'].split('/')[-1].split('-')[0:-1])
+        self.year = results['year'].split('–')[0]
+        self.se = f"{int(id_split[1]):02d}" if type == 'series' else None
+        self.ep = f"{int(id_split[2]):02d}" if type == 'series' else None
+
+
 class gdrive:
     def __init__(self):
+        self.page_size = 1000
         self.cf_proxy_url = None
         self.token = json.loads(os.environ.get('TOKEN'))
 
@@ -52,19 +66,28 @@ class gdrive:
         creds = Credentials.from_authorized_user_file('token.json')
         self.drive_instance = build('drive', 'v3', credentials=creds)
 
-    def drive_q(self, raw_query):
-        out = ''
-        for word in raw_query.split():
-            if out:
-                out += ' and '
-            out += f'name contains "{word}"'
-        return out
+    def get_query(self, type, id):
+        def qgen(string, conjunction='and'):
+            out = ''
+            for word in string.split():
+                if out:
+                    out += f' {conjunction} '
+                out += f'name contains "{word}"'
+            return out
+
+        cm = cinemeta(type, id)
+        if type == 'series':
+            suffix = f'(' + qgen(f"{cm.se}x{cm.ep} s{cm.se}e{cm.ep}", 'or') + \
+                     f' or (' + qgen(f's{cm.se} e{cm.ep}') + '))'
+            return f'{qgen(cm.name)} and {suffix}'
+        elif type == 'movie':
+            return qgen(f'{cm.name} {cm.year}')
 
     def file_list(self, file_fields):
         return self.drive_instance.files().list(
             q=self.query + " and trashed=false and mimeType contains 'video/'",
             fields=f'files({file_fields})',
-            pageSize=self.max_results,
+            pageSize=self.page_size,
             supportsAllDrives=True,
             includeItemsFromAllDrives=True,
             orderBy='quotaBytesUsed desc',
@@ -94,9 +117,8 @@ class gdrive:
         return self.drive_names
 
     def search(self, query):
+        self.query = query
         self.results = []
-        self.query = self.drive_q(query)
-        self.max_results = 200
 
         response = self.file_list(
             'id, name, size, driveId, md5Checksum')
@@ -113,7 +135,7 @@ class gdrive:
             self.get_drive_names()
         return self.results
 
-    def get_streams(self, query):
+    def get_streams(self, type, id):
         def get_stream_name():
             return m.get_string(f'GDrive \n;%quality \n;%resolution')
 
@@ -124,12 +146,13 @@ class gdrive:
         def get_url():
             return f"{self.cf_proxy_url}/load/{file_id}"
 
-        out = []
         start_time = datetime.now()
-        self.search(query)
+        out = []
+        self.search(self.get_query(type, id))
 
         for obj in self.results:
-            gib_size, name, file_id = int(obj['size']) / 1073741824, obj['name'], obj['id']
+            gib_size = int(obj['size']) / 1073741824
+            name, file_id = obj['name'], obj['id']
             drive_name = self.drive_names[obj['driveId']]
 
             m = meta(name)
