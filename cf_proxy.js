@@ -28,9 +28,9 @@ SOFTWARE.
 */
 
 var authConfig = {
-	"client_id": "202264815644.apps.googleusercontent.com", // client_id from token string
-	"client_secret": "X4Z3ca8xfWDb1Voo-F9a7ZxJ", // client_secret from token string
-	"refresh_token": "*******" // refresh token from token string
+	"client_id": "202264815644.apps.googleusercontent.com", // rclone client_id
+	"client_secret": "X4Z3ca8xfWDb1Voo-F9a7ZxJ", // rclone client_secret
+	"refresh_token": "*******" // refresh token is unique
 };
 addEventListener("fetch", (event) => {
 	event.respondWith(handleRequest(event.request));
@@ -78,7 +78,7 @@ class googleDrive {
 			const obj = await this.fetchAccessToken();
 			if(obj.access_token != undefined) {
 				this.authConfig.accessToken = obj.access_token;
-				this.authConfig.expires = Date.now() + 3500 * 1000;
+				this.authConfig.expires = Date.now() + obj.expires_in * 1000;
 			}
 		}
 		return this.authConfig.accessToken;
