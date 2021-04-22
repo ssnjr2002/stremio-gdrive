@@ -16,6 +16,8 @@ MANIFEST = {
 
 
 app = Flask(__name__)
+gd = gdrive()
+gd.cf_proxy_url = os.environ.get('CF_PROXY_URL')
 
 
 def respond_with(data):
@@ -41,14 +43,8 @@ def addon_stream(type, id):
     if type not in MANIFEST['types']:
         abort(404)
 
-    streams = gd.get_streams(type, id)
-    app.logger.info(f'Found {len(streams)} results for {gd.query}')
-    return respond_with({'streams': streams})
+    return respond_with({'streams': gd.get_streams(type, id)})
 
 
 if __name__ == '__main__':
-    gd = gdrive()
-    gd.cf_proxy_url = os.environ.get('CF_PROXY_URL')
-
-    port = os.environ.get('PORT')
-    app.run(threaded=True, debug=True, host="0.0.0.0", port=port)
+    app.run(debug=True)

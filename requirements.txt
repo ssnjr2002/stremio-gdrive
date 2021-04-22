@@ -15,3 +15,6 @@ parse_torrent_title == 2.3
 # app.py: 2
 # utils.py: 5
 requests == 2.25.1
+
+# app.py: 1
+gunicorn == 20.1.0
