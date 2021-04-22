@@ -167,5 +167,5 @@ class gdrive:
             out.append({'name': get_name(), 'title': get_title(), 'url': get_url()})
 
         time_taken = (datetime.now() - start_time).total_seconds()
-        print(f'Fetched stream(s) in {time_taken:.3f}s')
+        print(f'Fetched {len(out)} stream(s) in {time_taken:.3f}s for {self.query}')
         return out
