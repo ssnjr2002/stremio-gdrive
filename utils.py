@@ -50,7 +50,6 @@ class cinemeta:
 
         self.name = ' '.join(results['slug'].split('/')[-1].split('-')[0:-1])
         self.year = results['year'].split('–')[0]
-        self.release = results['released']
 
         self.se = f"{int(id_split[1]):02d}" if type == 'series' else None
         self.ep = f"{int(id_split[2]):02d}" if type == 'series' else None
@@ -82,8 +81,7 @@ class gdrive:
         if type == 'series':
             out = f'fullText contains "{cm.name}" and ' + \
                   f'(' + qgen(f"{cm.se}x{cm.ep} s{cm.se}e{cm.ep}", 'or') + \
-                  f' or (' + qgen(f's{cm.se} e{cm.ep}') + ')) and ' + \
-                  f'modifiedTime >= "{cm.release}"'
+                  f' or (' + qgen(f's{cm.se} e{cm.ep}') + '))'
         elif type == 'movie':
             out = qgen(f"{cm.name} {cm.year}")
 
