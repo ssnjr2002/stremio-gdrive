@@ -50,6 +50,8 @@ class cinemeta:
 
         self.name = ' '.join(results['slug'].split('/')[-1].split('-')[0:-1])
         self.year = results['year'].split('–')[0]
+        self.release = results['released']
+
         self.se = f"{int(id_split[1]):02d}" if type == 'series' else None
         self.ep = f"{int(id_split[2]):02d}" if type == 'series' else None
 
@@ -76,12 +78,16 @@ class gdrive:
             return out
 
         cm = cinemeta(type, id)
+
         if type == 'series':
-            suffix = f'(' + qgen(f"{cm.se}x{cm.ep} s{cm.se}e{cm.ep}", 'or') + \
-                     f' or (' + qgen(f's{cm.se} e{cm.ep}') + '))'
-            return f'{qgen(cm.name)} and {suffix}'
+            out = f'fullText contains "{cm.name}" and ' + \
+                  f'(' + qgen(f"{cm.se}x{cm.ep} s{cm.se}e{cm.ep}", 'or') + \
+                  f' or (' + qgen(f's{cm.se} e{cm.ep}') + ')) and ' + \
+                  f'modifiedTime >= "{cm.release}"'
         elif type == 'movie':
-            return qgen(f'{cm.name} {cm.year}')
+            out = qgen(f"{cm.name} {cm.year}")
+
+        return out
 
     def file_list(self, file_fields):
         return self.drive_instance.files().list(
@@ -90,7 +96,6 @@ class gdrive:
             pageSize=self.page_size,
             supportsAllDrives=True,
             includeItemsFromAllDrives=True,
-            orderBy='quotaBytesUsed desc',
             corpora='allDrives'
         ).execute()
 
@@ -117,6 +122,9 @@ class gdrive:
         return self.drive_names
 
     def search(self, query):
+        def get_size(dic):
+            return int(dic.get('size'))
+
         self.query = query
         self.results = []
 
@@ -124,19 +132,21 @@ class gdrive:
             'id, name, size, driveId, md5Checksum')
 
         if response:
-            unique_ids = []
+            unique_ids = {}
             for obj in response['files']:
                 unique_id = f"{obj.get('md5Checksum')}__{obj.get('driveId')}"
-                if unique_id not in unique_ids:
+                if not unique_ids.get(unique_id):
                     obj.pop('md5Checksum')
-                    unique_ids.append(unique_id)
+                    unique_ids[unique_id] = True
                     self.results.append(obj)
 
             self.get_drive_names()
+            self.results.sort(key=get_size, reverse=True)
+
         return self.results
 
     def get_streams(self, type, id):
-        def get_stream_name():
+        def get_name():
             return m.get_string(f'GDrive \n;%quality \n;%resolution')
 
         def get_title():
@@ -156,8 +166,7 @@ class gdrive:
             drive_name = self.drive_names[obj['driveId']]
 
             m = meta(name)
-            out.append({'name': get_stream_name(),
-                        'title': get_title(), 'url': get_url()})
+            out.append({'name': get_name(), 'title': get_title(), 'url': get_url()})
 
         time_taken = (datetime.now() - start_time).total_seconds()
         print(f'Fetched stream(s) in {time_taken:.3f}s')
