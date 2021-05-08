@@ -8,8 +8,8 @@
 
 There are two ways to go about:
 
-* **Method 1** is hard and long but might give you better performance and you need to make your own google cloud project thingy. 
-* **Method 2** relies on [rclones](https://rclone.org/) google cloud project saving you the burden of having to create your own project i.e. you get to skip the next 15 steps.
+* **Method 1** is hard and long but might give you better performance and you need to make your own google cloud project thingy.
+* **Method 2** relies on [rclones](https://rclone.org/) google cloud project saving you the burden of having to create your own project i.e. you get to skip the next 17 steps.
 
 ### Method 1 starts from here
 
@@ -28,24 +28,26 @@ There are two ways to go about:
 13. Click Create Credentials > OAuth client ID.
 14. Choose application type as Desktop, name it whatever you want and click create.
 15. The newly created credential appears under "OAuth 2.0 Client IDs." Click the download button to the right of the newly-created OAuth 2.0 Client ID. We will get a client_secret.json file, we will need this for the next section.
+16. Now once again, at the top-left corner, click the hamburger menu icon: ![image](https://user-images.githubusercontent.com/38104354/113966919-9a167980-984d-11eb-94c9-44d0e329a250.png) Click APIs & Services > OAuth Consent Screen.
+17. Under Publishing Status you will see a button called PUBLISH APP, click on that and choose confrim. 
 
 ### Method 2 starts from here
 
-16. Use the colab notebook to easily obtain the token and the required code for the cloudflare proxy: 
+18. Use the colab notebook to easily obtain the token and the required code for the cloudflare proxy: 
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ssnjrthegr8/stremio-gdrive/blob/main/Get%20Token%20and%20CF%20Proxy%20Code.ipynb)
 
-17. Run the cell of the respective method number you chose. Just press the circular play button beside the rectangular box.
+19. Run the cell of the respective method number you chose. Just press the circular play button beside the rectangular box.
 
-18. Login with your google account. Copy the js code and copy the token string for later when we deploy the heroku backend, the token should look something like this:
+20. Login with your google account. Copy the js code and copy the token string for later when we deploy the heroku backend, the token should look something like this:
 
 `{"token": "jhgdfgdhgfh", "refresh_token": "1//sdhgbfdhghd", "token_uri": "https://oauth2.googleapis.com/token", "client_id": "hsdgfjhgfsd.apps.googleusercontent.com", "client_secret": "gfsdfsdgf", "scopes": ["https://www.googleapis.com/auth/drive"]}`
 
-19. Go to https://dash.cloudflare.com/ log in or sign up.
-20. Open the Workers option.
-21. Create your sub-domain or continue if already done.
-22. Select the Free Plan. Click on Create a Worker. You can rename the workers at top of the page.
-23. In the `Script{}` box you will see some code, delete all that and paste the js code that you obtained in step 18 there.
+21. Go to https://dash.cloudflare.com/ log in or sign up.
+22. Open the Workers option.
+23. Create your sub-domain or continue if already done.
+24. Select the Free Plan. Click on Create a Worker. You can rename the workers at top of the page.
+25. In the `Script{}` box you will see some code, delete all that and paste the js code that you obtained in step 18 there.
 
 ### Deploying to heroku:
 
@@ -63,6 +65,7 @@ There are two ways to go about:
 3. On your left you will see a search box with the text "Search Addons", paste the url you got in step 1 in the search box. A prompt will open up, press install.
 
 ## Issues / Limitations / Explanations
+* Read this to know more on how the addon works: https://github.com/ssnjrthegr8/stremio-gdrive/issues/2#issuecomment-835128175
 * Apps hosted on heroku sleeps after 30 mins of inactivity. So after 30 mins of inactivity the addon needs about 30 secs to start back up and then some time to fetch the results. If you use something like [Kaffeine](https://kaffeine.herokuapp.com/) you can overcome this as Kaffeine pings your app every 30 mins. Downside is that you will spend extra dyno hours. Free dynos have about 550 hours of runtime per month which is about 22 days.
 * Google api is not very fast so if you have a ton of results it might take 10 - 15 secs to load.
 * Cloudflare workers is used as a proxy to stream files from google drive since it is really fast.
