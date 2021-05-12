@@ -83,7 +83,8 @@ class gdrive:
                   f'(' + qgen(f"{cm.se}x{cm.ep} s{cm.se}e{cm.ep}", 'or') + \
                   f' or (' + qgen(f's{cm.se} e{cm.ep}') + '))'
         elif type == 'movie':
-            out = qgen(f"{cm.name} {cm.year}")
+            out = qgen(f"*{cm.name} {cm.year}".replace(" ", "*")) + \
+                  " or (" + qgen(f"{cm.name} {cm.year}") + ")"
 
         return out
 
