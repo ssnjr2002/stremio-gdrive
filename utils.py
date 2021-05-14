@@ -60,7 +60,7 @@ class gdrive:
     def __init__(self):
         self.page_size = 1000
         self.cf_proxy_url = None
-        self.init_streams_cache()
+        self.streams_cache = {}
         self.token = json.loads(os.environ.get('TOKEN'))
 
         with open('token.json', 'w') as token_json:
@@ -68,10 +68,6 @@ class gdrive:
 
         creds = Credentials.from_authorized_user_file('token.json')
         self.drive_instance = build('drive', 'v3', credentials=creds)
-
-    def init_streams_cache(self):
-        with open('streams_cache.json', 'w') as streams_cache:
-            streams_cache.write('{}')
 
     def get_query(self, type, id):
         def qgen(string, chain='and', method='name', splitter=' '):

@@ -1,5 +1,4 @@
 import os
-import json
 import requests
 from utils import gdrive
 from flask import Flask, jsonify, abort
@@ -42,24 +41,12 @@ def addon_manifest():
 def addon_stream(type, id):
     if type not in MANIFEST['types']:
         abort(404)
-    streams = []
-    with open('streams_cache.json', 'r+') as streams_cache:
-        cached = json.load(streams_cache)
-        if cached.get(id):
-            streams = cached.get(id)
-            print(f'Fetched {len(streams)} cached stream(s) for {id}')
-        else:
-            streams = gd.get_streams(type, id)
-            cached[id] = streams
-        streams_cache.seek(0)
-        streams_cache.truncate()
-        json.dump(cached, streams_cache)
-    return respond_with({'streams': streams})
+    return respond_with({'streams': gd.get_streams(type, id)})
 
 
 @app.route('/resetcache')
 def reset_cache():
-    gd.init_streams_cache()
+    gd.streams_cache = {}
     print("Stream cache has been reset!")
     return 'Successfully reset stream cache!'
 
