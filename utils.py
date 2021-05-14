@@ -1,4 +1,5 @@
 import os
+import re
 import PTN
 import json
 import requests
@@ -68,24 +69,26 @@ class gdrive:
         self.drive_instance = build('drive', 'v3', credentials=creds)
 
     def get_query(self, type, id):
-        def qgen(string, conjunction='and'):
+        def qgen(string, chain='and', method='name', splitter=' '):
             out = ''
-            for word in string.split():
+            for word in string.split(splitter):
                 if out:
-                    out += f' {conjunction} '
-                out += f'name contains "{word}"'
+                    out += f' {chain} '
+                out += f'{method} contains "{word}"'
             return out
 
         cm = cinemeta(type, id)
 
         if type == 'series':
-            out = f'fullText contains "{cm.name}" and ' + \
-                  f'(' + qgen(f"{cm.se}x{cm.ep} s{cm.se}e{cm.ep}", 'or') + \
-                  f' or (' + qgen(f's{cm.se} e{cm.ep}') + '))'
+            out = qgen(cm.name) + ' and (' + \
+                  qgen(f's{cm.se} e{cm.ep}, ' + \
+                       f's{int(cm.se)} e{int(cm.ep)}, ' + \
+                       f'season {cm.se} episode {cm.ep}, ' + \
+                       f'{int(cm.se)} x {cm.ep}',
+                       chain='or', method='fullText', splitter=', ') + ')'
         elif type == 'movie':
             out = qgen(f"*{cm.name} {cm.year}".replace(" ", "*")) + \
                   " or (" + qgen(f"{cm.name} {cm.year}") + ")"
-
         return out
 
     def file_list(self, file_fields):
@@ -144,6 +147,18 @@ class gdrive:
 
         return self.results
 
+    def correct_se_ep(self, id, obj):
+        id = id.split(':')[1:]
+        seep = re.compile(r"(?ix)(\d+)[^a-zA-Z]*?(?:ep|e|x|episode)[^a-zA-Z]*?(\d+)")
+
+        try:
+            se, ep = seep.findall(obj['name'])[0]
+            if int(se) == int(id[0]) and int(ep) == int(id[1]):
+                return True
+        except (ValueError, IndexError):
+            return False
+        return False
+
     def get_streams(self, type, id):
         def get_name():
             return m.get_string(f'GDrive \n;%quality \n;%resolution')
@@ -160,6 +175,8 @@ class gdrive:
         self.search(self.get_query(type, id))
 
         for obj in self.results:
+            if type == "series" and not self.correct_se_ep(id, obj):
+                continue
             gib_size = int(obj['size']) / 1073741824
             name, file_id = obj['name'], obj['id']
             drive_name = self.drive_names[obj['driveId']]
