@@ -54,7 +54,6 @@ class gdrive {
           'grant_type': 'refresh_token'
         })
     })
-	console.log(await tgnotify(JSON.stringify("fetchAccessToken " + Date())))
     return await response.json()
   }
   // Source: https://github.com/alx-xlx/goindex/blob/master/goindex.js#L311
