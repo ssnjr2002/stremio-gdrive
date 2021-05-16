@@ -1,20 +1,20 @@
 var credentials = {
-	"client_id": "202264815644.apps.googleusercontent.com", // rclone client_id
-	"client_secret": "X4Z3ca8xfWDb1Voo-F9a7ZxJ", // rclone client_secret
-	"refresh_token": "*******" // refresh token is unique
+  "client_id": "202264815644.apps.googleusercontent.com", // rclone client_id
+  "client_secret": "X4Z3ca8xfWDb1Voo-F9a7ZxJ", // rclone client_secret
+  "refresh_token": "*******" // refresh token is unique
 }
 
 async function handleRequest(request) {
-	const drive = new gdrive(credentials)
-	let url = new URL(request.url)
-	let path = url.pathname
-	if(path.startsWith("/load")) {
-		var file_id = path.split("/").pop()
-		return drive.streamFile(request.headers.get("Range"), file_id)
-	} 
+  const drive = new gdrive(credentials)
+  let url = new URL(request.url)
+  let path = url.pathname
+  if(path.startsWith("/load")) {
+    var file_id = path.split("/").pop()
+    return drive.streamFile(request.headers.get("Range"), file_id)
+  } 
   else {
-		return new Response(':)', {"status": 200})
-	}
+    return new Response(':)', {"status": 200})
+  }
 }
 
 class gdrive {
@@ -58,5 +58,5 @@ class gdrive {
 }
 
 addEventListener("fetch", (event) => {
-	event.respondWith(handleRequest(event.request))
+  event.respondWith(handleRequest(event.request))
 })
