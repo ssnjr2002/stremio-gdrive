@@ -94,6 +94,3 @@ The addon searches for:
 * I am an amateur and I did this to the best of my ability. If you find flaws feel free to post an issue.
 
 ### **For the sake of security please don't share your herokuapp url or your cloudflare workers proxy url. They can be used to get files from your drive.**
-
-## Credits
-1. To [alx-xlx go index repo](https://github.com/alx-xlx/goindex/blob/master/goindex.js) for the encode part of the cloudflare js code.
