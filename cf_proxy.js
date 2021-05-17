@@ -23,17 +23,32 @@ class gdrive {
     this.credentials = credentials
   }
   async streamFile(range = "", file_id) {
-    console.log(`streamFile: ${file_id}, range: ${range}`)
+    //console.log(`streamFile: ${file_id}, range: ${range}`)
+
     let fetchURL = `${this.gapihost}/drive/v3/files/${file_id}?alt=media`
     let fetchData = await this.authData()
     fetchData.headers['Range'] = range
+
     let streamResp = await fetch(fetchURL, fetchData)
     let { readable, writable } = new TransformStream()
     streamResp.body.pipeTo(writable)
-    return new Response(readable, streamResp)
+
+    let { headers } = (streamResp = new Response(readable, streamResp))
+    let tokenExpiryDate = this.credentials.token.expires_in
+    let maxAge = Math.floor((tokenExpiryDate - Date.now()) / 1000)
+
+    //console.log(`expiryDate: ${tokenExpiryDate}/${Date()} maxAge: ${maxAge}`)
+
+    headers.set('Date', Date())
+    headers.set('Expires', new Date(tokenExpiryDate))
+    headers.set('Cache-Control', `max-age=${maxAge}`)
+    headers.set('Access-Control-Allow-Origin', '*')
+    headers.set('Access-Control-Allow-Headers', '*')
+
+    return streamResp
   }
   async accessToken() {
-    console.log("accessToken")
+    //console.log("accessToken")
     if(!this.credentials.token || this.credentials.token.expires_in < Date.now()) {
       this.credentials.token = await this.fetchAccessToken()
       this.credentials.token.expires_in = Date.now() + this.credentials.token.expires_in * 1000
@@ -41,7 +56,7 @@ class gdrive {
     return this.credentials.token.access_token
   }
   async fetchAccessToken(url=`${this.gapihost}/oauth2/v4/token`) {
-    console.log("fetchAccessToken")
+    //console.log("fetchAccessToken")
     let jsonBody = {
       'client_id': this.credentials.client_id,
       'client_secret': this.credentials.client_secret,
