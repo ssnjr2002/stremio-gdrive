@@ -70,26 +70,43 @@ class gdrive:
         self.drive_instance = build('drive', 'v3', credentials=creds)
 
     def get_query(self, type, id):
-        def qgen(string, chain='and', method='name', splitter=' '):
+        def qgen(string, chain='or', method='fullText', splitter=', '):
             out = ''
             for word in string.split(splitter):
                 if out:
-                    out += f' {chain} '
-                out += f'{method} contains "{word}"'
+                    out += f" {chain} "
+                out += f"{method} contains '{word}'"
             return out
 
         cm = cinemeta(type, id)
 
-        if type == 'series':
-            out = qgen(cm.name) + ' and (' + \
-                  qgen(f's{cm.se} e{cm.ep}, ' + \
-                       f's{int(cm.se)} e{int(cm.ep)}, ' + \
-                       f'season {cm.se} episode {cm.ep}, ' + \
-                       f'{int(cm.se)} x {cm.ep}',
-                       chain='or', method='fullText', splitter=', ') + ')'
-        elif type == 'movie':
-            out = qgen(f"*{cm.name} {cm.year}".replace(" ", "*")) + \
-                  " or (" + qgen(f"{cm.name} {cm.year}") + ")"
+        if type == 'series':  # example series: Big Buck Bunny (S01 E01)
+            # fullText contains '"big buck bunny"' and (fullText contains 
+            # 's01 e01' or fullText contains 's1 e1' or fullText contains 
+            # 'season 1 episode 1' or fullText contains '"1 x 1"' or fullText 
+            # contains '"1 x 01"')
+            out = f"fullText contains '\"{cm.name}\"' and (" + qgen(
+                  f's{cm.se} e{cm.ep}, ' + \
+                  f's{int(cm.se)} e{int(cm.ep)}, ' + \
+                  f'season {int(cm.se)} episode {int(cm.ep)}, ' + \
+                  f'"{int(cm.se)} x {int(cm.ep)}", ' + \
+                  f'"{int(cm.se)} x {cm.ep}"') + ')'
+        elif type == 'movie':  # example movie: Big Buck Bunny 2008
+            # name contains '*big*buck*bunny*2008' or (name contains 'big' and 
+            # name contains 'buck' and name contains 'bunny' and name contains 
+            # '2008')
+            method1 = "name contains '" + \
+                      f"*{cm.name} {cm.year}".replace(" ", "*") + "' or (" + \
+                      qgen(f"{cm.name} {cm.year}", chain='and', method='name',
+                           splitter=' ') + ")"
+            # fullText contains '"big buck bunny 2008"'
+            method2 = f"fullText contains '\"{cm.name} {cm.year}\"'"
+            # (fullText contains '"big buck bunny 2008"' or fullText contains 
+            # '"2008 big buck bunny"')
+            method3 = "(" + \
+                      qgen(f'"{cm.name} {cm.year}", "{cm.year} {cm.name}"') + \
+                      ")"
+            out = method1
         return out
 
     def file_list(self, file_fields):
