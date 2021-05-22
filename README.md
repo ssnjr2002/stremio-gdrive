@@ -86,6 +86,7 @@ The addon searches for:
     * S1 E1
     * Season 1 Episode 1
     * 1x01
+    * 1x1
 
 ## Issues / Limitations / Explanations
 * Apps hosted on heroku sleeps after 30 mins of inactivity. So after 30 mins of inactivity the addon needs about 30 secs to start back up and then some time to fetch the results. If you use something like [Kaffeine](https://kaffeine.herokuapp.com/) you can overcome this as Kaffeine pings your app every 30 mins. Downside is that you will spend extra dyno hours. Free dynos have about 550 hours of runtime per month which is about 22 days.
