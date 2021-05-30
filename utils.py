@@ -49,7 +49,8 @@ class cinemeta:
         url = f"https://v3-cinemeta.strem.io/meta/{type}/{id_split[0]}.json"
         results = requests.get(url).json().get('meta')
 
-        self.name = ' '.join(results['slug'].split('/')[-1].split('-')[0:-1])
+        self.name = results['name'].replace("'", "\\'")
+        self.slug = ' '.join(results['slug'].split('/')[-1].split('-')[0:-1])
         self.year = results['year'].split('–')[0]
 
         self.se = f"{int(id_split[1]):02d}" if type == 'series' else None
@@ -70,54 +71,52 @@ class gdrive:
         self.drive_instance = build('drive', 'v3', credentials=creds)
 
     def get_query(self, type, id):
-        def qgen(string, chain='or', method='fullText', splitter=', '):
+        def qgen(
+            string, chain='or', method='fullText', splitter=', ', quotes=False):
             out = ''
             for word in string.split(splitter):
                 if out:
                     out += f" {chain} "
-                out += f"{method} contains '{word}'"
+                if quotes:
+                    out += f"{method} contains '\"{word}\"'"
+                else:
+                    out += f"{method} contains '{word}'"
             return out
 
         cm = cinemeta(type, id)
 
-        if type == 'series':  # example series: Big Buck Bunny (S01 E01)
-            # fullText contains '"big buck bunny"' and (fullText contains 
-            # 's01 e01' or fullText contains 's1 e1' or fullText contains 
-            # 'season 1 episode 1' or fullText contains '"1 x 1"' or fullText 
-            # contains '"1 x 01"')
-            out = f"fullText contains '\"{cm.name}\"' and (" + qgen(
-                  f's{cm.se} e{cm.ep}, ' + \
-                  f's{int(cm.se)} e{int(cm.ep)}, ' + \
-                  f'season {int(cm.se)} episode {int(cm.ep)}, ' + \
-                  f'"{int(cm.se)} x {int(cm.ep)}", ' + \
-                  f'"{int(cm.se)} x {cm.ep}"') + ')'
-        elif type == 'movie':  # example movie: Big Buck Bunny 2008
-            # name contains '*big*buck*bunny*2008' or (name contains 'big' and 
-            # name contains 'buck' and name contains 'bunny' and name contains 
-            # '2008')
-            method1 = "name contains '" + \
-                      f"*{cm.name} {cm.year}".replace(" ", "*") + "' or (" + \
-                      qgen(f"{cm.name} {cm.year}", chain='and', method='name',
-                           splitter=' ') + ")"
-            # fullText contains '"big buck bunny 2008"'
-            method2 = f"fullText contains '\"{cm.name} {cm.year}\"'"
-            # (fullText contains '"big buck bunny 2008"' or fullText contains 
-            # '"2008 big buck bunny"')
-            method3 = "(" + \
-                      qgen(f'"{cm.name} {cm.year}", "{cm.year} {cm.name}"') + \
-                      ")"
-            out = method1
-        return out
+        names = [cm.slug]
+        if cm.slug != cm.name.casefold():
+            names.append(cm.name)
+
+        if type == 'series':
+            return ['(' + \
+                    qgen('^|%$'.join(names), splitter='^|%$', quotes=True) + \
+                    ") and (" + qgen(
+                    f's{cm.se} e{cm.ep}, ' + \
+                    f's{int(cm.se)} e{int(cm.ep)}, ' + \
+                    f'season {int(cm.se)} episode {int(cm.ep)}, ' + \
+                    f'"{int(cm.se)} x {int(cm.ep)}", ' + \
+                    f'"{int(cm.se)} x {cm.ep}"') + ')']
+        elif type == 'movie':
+            def query(name):
+                return "name contains '" + \
+                        f"*{name} {cm.year}".replace(" ", "*") + "' or (" + \
+                        qgen(f"{name} {cm.year}", chain='and', method='name',
+                            splitter=' ') + ")"
+            return [query(name) for name in names]
 
     def file_list(self, file_fields):
-        return self.drive_instance.files().list(
-            q=self.query + " and trashed=false and mimeType contains 'video/'",
-            fields=f'files({file_fields})',
-            pageSize=self.page_size,
-            supportsAllDrives=True,
-            includeItemsFromAllDrives=True,
-            corpora='allDrives'
-        ).execute()
+        out = []
+        for q in self.query:
+            out += self.drive_instance.files().list(
+                    q=f"{q} and trashed=false and mimeType contains 'video/'",
+                    fields=f'files({file_fields})',
+                    pageSize=self.page_size,
+                    supportsAllDrives=True,
+                    includeItemsFromAllDrives=True,
+                    corpora='allDrives').execute()['files']
+        return out
 
     def get_drive_names(self):
         def callback(request_id, response, exception):
@@ -153,7 +152,7 @@ class gdrive:
 
         if response:
             unique_ids = {}
-            for obj in response['files']:
+            for obj in response:
                 unique_id = f"{obj.get('md5Checksum')}__{obj.get('driveId')}"
                 if not unique_ids.get(unique_id):
                     obj.pop('md5Checksum')
