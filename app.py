@@ -39,7 +39,7 @@ def addon_manifest():
 
 @app.route('/stream/<type>/<id>.json')
 def addon_stream(type, id):
-    if type not in MANIFEST['types']:
+    if type not in MANIFEST['types'] or id[:2] != 'tt':
         abort(404)
     try:
         return respond_with({'streams': gd.get_streams(type, id)})

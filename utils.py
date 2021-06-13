@@ -50,91 +50,50 @@ class MetadataNotFound(Exception):
 
 class meta_provider:
     def __init__(self, type, id):
-        self.fix_char = lambda x: x.replace("'", "\\'").replace(":", "").lower()
-        self.del_punc = lambda x: x.translate(str.maketrans('', '', punctuation))
-        self.cm_url = 'v3-cinemeta.strem.io'
-        self.tmdb_url = '94c8cb9f702d-tmdb-addon.baby-beamup.club'
-        self.kitsu_url = "anime-kitsu.strem.fun"
-        self.imdbsg_url = 'v2.sg.media-imdb.com'
-        self.type = type
         self.id = id
+        self.type = type
+        self.cm_url = 'v3-cinemeta.strem.io'
+        self.imdbsg_url = 'v2.sg.media-imdb.com'
+        self.fix_char = lambda x: x.replace("'", "\\'").replace(":", "").lower()
+        self.re_punc = lambda x: x.translate(str.maketrans('', '', punctuation))
 
+        meta = None
         id_split = id.split(':')
-        prefix = id_split[0] if id_split[0][:2] != 'tt' else 'tt'
 
         if self.type == 'series':
-            self.id = ':'.join(id_split[:2]) if prefix != 'tt' else id_split[0]
+            self.id = id_split[0]
             self.ep = str(id_split[-1]).zfill(2)
             self.se = str(id_split[-2]).zfill(2)
 
-        if prefix == 'kitsu':
-            meta = self.get(self.kitsu_url)
+        meta = self.get(self.imdbsg_url, 'd')
+        if meta:
+            self.set_meta(self.id, meta[0], year='y', name='l')
+        else:  # fallback to cinemeta just for keks
+            meta = self.get(self.cm_url)
             if meta:
-                self.set_meta(
-                    id=self.id, meta=meta, aliases='aliases', slug='slug')
-                if self.type == 'series':
-                    self.se = str(meta.get(
-                            'videos')[int(self.ep) + 1]['imdbSeason']).zfill(2)
-                    # get rid of season num at end of name string:
-                    slug_split = self.slug.split("-")
-                    if slug_split[-1] == 'season':
-                        season_num = slug_split[-2][:-2]
-                        name_split = self.name.split(' ')
-                        if name_split[-1] == season_num:
-                            self.name = ' '.join(name_split[:-1])
-                            if hasattr(self, 'aliases'):
-                                self.aliases = [a[:-2] for a in self.aliases]
-        else:
-            if prefix == 'tmdb':
-                meta = self.get(self.tmdb_url)
-                if meta:
-                    self.set_meta(self.id, meta)
-            elif prefix == 'tt':
-                meta = self.get(self.cm_url)
-                if meta:
-                    self.set_meta(self.id, meta)
-                else:  # fallback to sg.media-imdb
-                    meta = self.get(self.imdbsg_url, 'd')
-                    if meta:
-                        self.set_meta(self.id, meta[0], year='y', name='l')
+                self.set_meta(self.id, meta)
 
         if meta:
-            self.slug = self.del_punc(self.name)
+            self.slug = self.re_punc(self.name)
             self.names = [self.name,
                           self.slug] if self.name != self.slug else [self.slug]
-            if hasattr(self, 'aliases'):
-                aliases = [self.name, self.slug]
-                se_reg = re.compile('(?ix)(.\d{0,3}[a-z]{2}.season)')
-                for a in self.aliases:
-                    a = self.fix_char(se_reg.sub('', a))
-                    a_slug = self.del_punc(a)
-                    if a not in aliases:
-                        aliases.append(a)
-                        if a != a_slug and a_slug not in aliases:
-                            aliases.append(a_slug)
-                self.aliases = aliases
         else:
             raise MetadataNotFound(f"Couldn't find metadata for {id}!")
 
     def get(self, url, keyname='meta'):
-        try:
-            url += f"/meta/{self.type}/{self.id}.json" if not url.startswith(
+        url += f"/meta/{self.type}/{self.id}.json" if not url.startswith(
                 "v2.sg.media-imdb") else f"/suggests/t/{self.id}.json"
-            ua = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.69 Safari/537.36 Edg/91.0.864.33'}
-            r = requests.get(f'https://{url}', timeout=5, headers=ua).text
-            # imbd wont return proper json so:
+        try:
+            r = requests.get(f'https://{url}', timeout=5).text
+            # imbd wont return proper json sometimes so:
             return json.loads(r[r.index('{'):].rstrip(')')).get(keyname)
         except requests.exceptions.Timeout:
             print(f"ERROR: FAILED TO FETCH META ({id})!")
             return None
 
-    def set_meta(self, id, meta, year='year', name='name', **keys):
-        self.year = str(meta.get(year)).split('–')[0] if meta.get(
-            year) else ''
+    def set_meta(self, id, meta, year='year', name='name'):
+        self.year = str(meta.get(year)).split('–')[0]
         self.name = self.fix_char(meta.get(name))
-        for key in keys:
-            setattr(self, key, meta.get(keys[key]))
-
 
 class gdrive:
     def __init__(self):
@@ -150,8 +109,8 @@ class gdrive:
         self.drive_instance = build('drive', 'v3', credentials=creds)
 
     def get_query(self, type, id):
-        def qgen(
-            string, chain='or', method='fullText', splitter=', ', quotes=False):
+        def qgen(string, chain='or', method='fullText', 
+                 splitter=', ', quotes=False):
             out = ''
             for word in string.split(splitter):
                 if out:
@@ -163,14 +122,11 @@ class gdrive:
             return out
 
         mp = meta_provider(type, id)
-        names = [mp.slug, mp.name] if mp.slug != mp.name else [mp.slug]
-        names = mp.aliases if hasattr(mp, 'aliases') else names
-        # need this for se_ep check later:
-        self.mp = mp
+        self.mp = mp  # need this for se_ep check later
 
         if type == 'series':
             return ['(' + \
-                    qgen('^|%$'.join(names), splitter='^|%$', quotes=True) + \
+                    qgen('^%$'.join(mp.names), splitter='^%$', quotes=True) + \
                     ") and (" + qgen(
                     f's{mp.se} e{mp.ep}, ' + \
                     f's{int(mp.se)} e{int(mp.ep)}, ' + \
@@ -184,7 +140,7 @@ class gdrive:
                         f"*{name} {mp.year}".replace(" ", "*") + "' or (" + \
                         qgen(f"{name} {mp.year}", chain='and', method='name',
                             splitter=' ') + ")"
-            return [query(name) for name in names]
+            return [query(name) for name in mp.names]
 
     def file_list(self, file_fields):
         out = []
@@ -232,7 +188,10 @@ class gdrive:
             for obj in response:
                 unique_id = f"{obj.get('md5Checksum')}__{obj.get('driveId')}"
                 if not unique_ids.get(unique_id):
-                    obj.pop('md5Checksum')
+                    try:
+                        obj.pop('md5Checksum')
+                    except KeyError:
+                        print(f"WARN, Checksum not found: {obj}")
                     unique_ids[unique_id] = True
                     self.results.append(obj)
 
@@ -260,7 +219,8 @@ class gdrive:
 
         def get_title():
             m.get_string('🎥;%codec 🌈;%bitDepth;bit 🔊;%audio 👤;%encoder')
-            return f"{name}\n💾 {gib_size:.3f} GiB ☁️ {drive_name}\n{m.formatted}"
+            return f"{name}\n💾 {gib_size:.3f} GiB ☁️ " \
+                   f"{drive_name}\n{m.formatted}"
 
         def get_url():
             return f"{self.cf_proxy_url}/load/{file_id}"
@@ -280,6 +240,13 @@ class gdrive:
             out.append(
                 {'name': get_name(), 'title': get_title(), 'url': get_url()})
 
+        noresult = [{
+            'name': 'GDrive 404', 
+            'title': 'No results found!', 
+            'externalUrl': '/'}]
+
         time_taken = (datetime.now() - start_time).total_seconds()
-        print(f'Fetched {len(out)} stream(s) in {time_taken:.3f}s for {self.query}')
-        return out
+        print(f'Fetched {len(out)} stream(s) in {time_taken:.3f}s',
+              f'for ({id}) {self.query}')
+
+        return out if len(out) else noresult
