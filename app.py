@@ -1,11 +1,11 @@
 import os
 import requests
-from utils import gdrive
 from flask import Flask, jsonify, abort
+from utils import gdrive, MetadataNotFound
 
 MANIFEST = {
     "id": "ssnjr.stremio.googledrive",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "name": "GDrive",
     "description": "This plugin fetches content from goolag drive.",
     "logo": "https://fonts.gstatic.com/s/i/productlogos/drive_2020q4/v8/web-512dp/logo_drive_2020q4_color_1x_web_512dp.png",
@@ -29,7 +29,7 @@ def respond_with(data):
 
 @app.route('/')
 def init():
-    return 'Addon is working. Click <a href="/resetcache">here</a> to reset stream cache.'
+    return 'Addon is alive.'
 
 
 @app.route('/manifest.json')
@@ -41,14 +41,11 @@ def addon_manifest():
 def addon_stream(type, id):
     if type not in MANIFEST['types']:
         abort(404)
-    return respond_with({'streams': gd.get_streams(type, id)})
-
-
-@app.route('/resetcache')
-def reset_cache():
-    gd.streams_cache = {}
-    print("Stream cache has been reset!")
-    return 'Successfully reset stream cache!'
+    try:
+        return respond_with({'streams': gd.get_streams(type, id)})
+    except MetadataNotFound as e:
+        print(f'ERROR: {e}')
+        abort(404)
 
 
 if __name__ == '__main__':
