@@ -8,8 +8,8 @@
 
 There are two ways to go about:
 
-* **Method 1** is hard and long but might give you better performance and you need to make your own google cloud project thingy.
-* **Method 2** relies on [rclones](https://rclone.org/) google cloud project saving you the burden of having to create your own project i.e. you get to skip the next 17 steps.
+* **[Method 1](https://github.com/ssnjrthegr8/stremio-gdrive#method-1-starts-from-here)** is hard and long but might give you better performance and you need to make your own google cloud project thingy.
+* **[Method 2](https://github.com/ssnjrthegr8/stremio-gdrive#method-2-starts-from-here)** relies on [rclones](https://rclone.org/) google cloud project saving you the burden of having to create your own project i.e. you can skip straight to [step 18](https://github.com/ssnjrthegr8/stremio-gdrive#method-2-starts-from-here).
 
 ### Method 1 starts from here
 
@@ -41,7 +41,11 @@ There are two ways to go about:
 
 20. Login with your google account. Copy the js code and copy the token string for later when we deploy the heroku backend, the token should look something like this:
 
-`{"token": "jhgdfgdhgfh", "refresh_token": "1//sdhgbfdhghd", "token_uri": "https://oauth2.googleapis.com/token", "client_id": "hsdgfjhgfsd.apps.googleusercontent.com", "client_secret": "gfsdfsdgf", "scopes": ["https://www.googleapis.com/auth/drive"]}`
+```json
+{"token": "jhgdfgdhgfh", "refresh_token": "1//sdhgbfdhghd", "token_uri": "https://oauth2.googleapis.com/token", "client_id": "hsdgfjhgfsd.apps.googleusercontent.com", "client_secret": "gfsdfsdgf", "scopes": ["https://www.googleapis.com/auth/drive"]}
+```
+
+### Skip to [Deploying to heroku](https://github.com/ssnjrthegr8/stremio-gdrive#deploying-to-heroku) if you dont want to use a proxy. Without proxy the addon will only work on stremio desktop (as of sept 7 2021).
 
 21. Go to https://dash.cloudflare.com/ log in or sign up.
 22. Open the Workers option.
@@ -55,14 +59,14 @@ There are two ways to go about:
 
 1. Hit the deploy button.
 2. Paste the token string in the token field.
-3. Copy your cloudflare worker url and paste it in the cf proxy url field.
+3. Copy your cloudflare worker url and paste it in the cf proxy url field. Leave it blank to use the addon without the proxy.
 4. Hit deploy.
 
-### Adding addon to Stremio:
+### Installing the addon to your Stremio account:
 
-1. Get the url of the heroku app you deployed. Add `/manifest.json` to the end. For example if my herokuapp url is `https://stremiogdrive.herokuapp.com/` add `/manifest.json` to the end to get: `https://stremiogdrive.herokuapp.com/manifest.json`. Copy this url.
-2. Go to https://staging.strem.io/ and log into your stremio account. Press the puzzle icon on the top right.
-3. On your left you will see a search box with the text "Search Addons", paste the url you got in step 1 in the search box. A prompt will open up, press install.
+1. Get the url of the heroku app you deployed. Add `/manifest.json` to the end. For example if my herokuapp url is `https://your-stremiogdrive.herokuapp.com` add `/manifest.json` to the end to get: `https://your-stremiogdrive.herokuapp.com/manifest.json`. Copy this url.
+2. Open stremio on desktop or android and go to addons section.
+3. In the search bar paste the manifest link (`https://your-stremiogdrive.herokuapp.com/manifest.json`) and press enter. Click install and you are done.
 
 ## How the addon works
 
