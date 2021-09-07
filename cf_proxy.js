@@ -9,8 +9,9 @@ async function handleRequest(request) {
   let url = new URL(request.url)
   let path = url.pathname
   if(path.startsWith("/load")) {
-    var file_id = path.split("/").pop()
-    return drive.streamFile(request.headers.get("Range"), file_id)
+    var file_id = url.searchParams.get('i')
+    var file_name = url.searchParams.get('n')
+    return drive.streamFile(request.headers.get("Range"), file_id, file_name)
   } 
   else {
     return new Response(':)', {"status": 200})
@@ -22,7 +23,7 @@ class gdrive {
     this.gapihost = 'https://www.googleapis.com'
     this.credentials = credentials
   }
-  async streamFile(range = "", file_id) {
+  async streamFile(range = "", file_id, file_name) {
     //console.log(`streamFile: ${file_id}, range: ${range}`)
 
     let fetchURL = `${this.gapihost}/drive/v3/files/${file_id}?alt=media`
@@ -44,7 +45,8 @@ class gdrive {
     headers.set('Cache-Control', `max-age=${maxAge}`)
     headers.set('Access-Control-Allow-Origin', '*')
     headers.set('Access-Control-Allow-Headers', '*')
-
+    headers.set('Content-Disposition', `attachment; filename = "${file_name}"`)
+    
     return streamResp
   }
   async accessToken() {

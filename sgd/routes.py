@@ -1,11 +1,13 @@
-import os
-import requests
-from flask import Flask, jsonify, abort
-from utils import gdrive, MetadataNotFound
+from sgd import app, gdrive
+from sgd.utils.meta import MetadataNotFound, Meta
+from sgd.utils.streams import Streams
+from flask import jsonify, abort
+from datetime import datetime
+
 
 MANIFEST = {
     "id": "ssnjr.stremio.googledrive",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "name": "GDrive",
     "description": "This plugin fetches content from goolag drive.",
     "logo": "https://fonts.gstatic.com/s/i/productlogos/drive_2020q4/v8/web-512dp/logo_drive_2020q4_color_1x_web_512dp.png",
@@ -13,10 +15,6 @@ MANIFEST = {
     "types": ["movie", "series"],
     "catalogs": []
 }
-
-app = Flask(__name__)
-gd = gdrive()
-gd.cf_proxy_url = os.environ.get('CF_PROXY_URL')
 
 
 def respond_with(data):
@@ -37,16 +35,23 @@ def addon_manifest():
     return respond_with(MANIFEST)
 
 
-@app.route('/stream/<type>/<id>.json')
-def addon_stream(type, id):
-    if type not in MANIFEST['types'] or id[:2] != 'tt':
+@app.route('/stream/<stream_type>/<stream_id>.json')
+def addon_stream(stream_type, stream_id):
+    if stream_type not in MANIFEST['types'] or stream_id[:2] != 'tt':
         abort(404)
     try:
-        return respond_with({'streams': gd.get_streams(type, id)})
+        start_time = datetime.now()
+
+        stream_meta = Meta(stream_type, stream_id)
+        gdrive.search(stream_meta)
+        streams = Streams(gdrive, stream_meta)
+
+        time_taken = (datetime.now() - start_time).total_seconds()
+        print(f'Fetched {len(streams.results)} stream(s) in ' \
+              f'{time_taken:.3f}s for ({stream_id}) {gdrive.query}')
+
+        return respond_with({'streams': streams.results})
+
     except MetadataNotFound as e:
         print(f'ERROR: {e}')
         abort(404)
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
