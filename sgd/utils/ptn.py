@@ -4,15 +4,17 @@ class parse_title:
     def __init__(self, name):
         ptn_dict = PTN.parse(name, standardise=False)
         key_list = ['resolution', 'codec', 'season', 'episode',
-                     'bitDepth', 'audio', 'quality', 'encoder']
+                     'bitDepth', 'audio', 'quality', 'encoder',
+                     'title']
 
         for key in key_list:
             setattr(self, key, ptn_dict.get(key))
 
         self.sortkeys = {
-            "res": self.resolution, 
-            "se": self.season, 
-            "ep": self.episode
+            "se": self.season,
+            "ep": self.episode,
+            "res": self.resolution,
+            "title": self.title
         }
 
     def get_val(self, x, y):

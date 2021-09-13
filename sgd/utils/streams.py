@@ -37,7 +37,7 @@ class Streams:
         return f"{size:.2f}{unit}"
 
     def get_name(self):
-        return self.parsed.get_str(f'GDrive \n;%quality \n;%resolution')
+        return self.parsed.get_str(f'GDrive %resolution %quality')
 
     def get_title(self):
         file_name = self.item.get('name')
@@ -79,22 +79,33 @@ class Streams:
         return self.constructed
 
     def best_res(self, item):
-        sortkeys = item.get('sortkeys')
+        MAX_RES = 2160
+        alnum = lambda x: ''.join(filter(str.isalnum, x)).lower()
+        
+        sortkeys = item.pop('sortkeys')
         resolution = sortkeys.get('res')
 
-        if resolution:
-            res_map = {"UHD": "2160p", "4K": "2160p", "HD": "720p"}
-            if res_map.get(resolution):
-                resolution = res_map[resolution]
-            resolution = int(resolution[:-1])
-        else:
-            resolution = 2
+        try:
+            res_map = {
+                "uhd": 2160,
+                "4k": 2160,
+                "hd": 720,
+                "1280x720": 720,
+                "1280x720p": 720,
+                "fhd": 1080
+            }
+            sort_int = res_map.get(resolution.lower()) or int(resolution[:-1])
+        except (TypeError, AttributeError):
+            sort_int = 1
+
+        ptn_name = alnum(sortkeys.get('title'))
+        if ptn_name not in self.strm_meta.alnum_names:
+            sort_int -= MAX_RES
 
         if self.strm_meta.type == 'series':
             invalid_se = int(self.strm_meta.se) != sortkeys.get('se')
             invalid_ep = int(self.strm_meta.ep) != sortkeys.get('ep')
             if invalid_se or invalid_ep:
-                resolution = -resolution
+                sort_int -= MAX_RES * 2
 
-        del item['sortkeys']  # It's not needed anymore
-        return 1 / resolution if resolution < 0 else resolution
+        return sort_int
