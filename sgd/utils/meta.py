@@ -12,6 +12,7 @@ class Meta:
         self.id = stream_id
         self.type = stream_type
         self.full_id = stream_id
+        alnum = lambda x: ''.join(filter(str.isalnum, x)).lower()
         del_punc = lambda x: x.translate(str.maketrans('', '', punctuation))
 
         if self.type == 'series':
@@ -37,6 +38,7 @@ class Meta:
                 self.names = [self.name, self.slug]
             else:
                 self.names = [self.slug]
+            self.alnum_names = set(alnum(name) for name in self.names)
         else:
             raise MetadataNotFound(
                 f"Couldn't find metadata for {type} {id} !")
