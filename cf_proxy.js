@@ -12,11 +12,11 @@ async function handleRequest(request) {
     var file_id = path_split[2]
     var file_name = path_split[3] || 'file_name.vid'
     return drive.streamFile(request.headers.get("Range"), file_id, file_name)
-  } else if (!path_split[2]) {
-    return new Response('404: File Not Found!', { "status": 404 })
-  } else {
-    return new Response('200', { "status": 200 })
   }
+  else if (url.pathname == '/')
+      return new Response('200 Online!', { "status": 200 })
+  else
+      return new Response('404 Not Found!', { "status": 404 })
 }
 
 class gdrive {
