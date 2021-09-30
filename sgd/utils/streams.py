@@ -1,8 +1,6 @@
 import os
-import re
-from sgd.utils.cache import Json
+import urllib
 from sgd.utils.ptn import parse_title
-from urllib.parse import urlencode
 
 
 class Streams:
@@ -51,9 +49,8 @@ class Streams:
 
     def get_proxy_url(self):
         file_id = self.item.get('id')
-        file_name = self.item.get('name')
-        params = {'i': file_id, 'n': file_name}
-        return f"{self.proxy_url}/load?{urlencode(params)}"
+        file_name = self.item.get('name') or 'file_name.vid'
+        return f"{self.proxy_url}/load/{file_id}/{urllib.parse.quote(file_name)}"
 
     def get_gapi_url(self):
         file_id = self.item.get('id')
