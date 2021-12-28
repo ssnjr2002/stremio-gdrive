@@ -36,10 +36,10 @@ class GoogleDrive:
                     ) + ')' for name in sm.names]
 
         elif sm.type == 'movie':
-            return ["name contains '" +
+            return ["(name contains '" +
                     f"{name} {sm.year}".replace(" ", ".") + "' or (" +
                     self.qgen(f'{name} {sm.year}') + 
-                    ")" for name in sm.names]
+                    "))" for name in sm.names]
 
     def file_list(self, file_fields):
         def callb(request_id, response, exception):
