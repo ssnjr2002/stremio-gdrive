@@ -37,7 +37,7 @@ class GoogleDrive:
 
         elif sm.type == 'movie':
             return ["name contains '" +
-                    f"*{name} {sm.year}".replace(" ", "*") + "' or (" +
+                    f"{name} {sm.year}".replace(" ", ".") + "' or (" +
                     self.qgen(f'{name} {sm.year}') + 
                     ")" for name in sm.names]
 
