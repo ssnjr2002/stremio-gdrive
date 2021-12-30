@@ -6,22 +6,22 @@ class Cache:
     def __init__(self, filename, filetype):
         self.filename = filename
         self.filetype = filetype
-        self.bin = 'b' if filetype is pickle else ''
+        self.bin = "b" if filetype is pickle else ""
         try:
             self.load()
         except FileNotFoundError:
             self.contents = dict()
-            self.save() 
+            self.save("Created")
 
     def load(self):
-        with open(self.filename, f'r{self.bin}') as file_:
+        with open(self.filename, f"r{self.bin}") as file_:
             self.contents = self.filetype.load(file_)
             print(f"Reading {self.filename}!")
 
-    def save(self):
-        with open(self.filename, f'w{self.bin}') as file_:
+    def save(self, mess="Saving"):
+        with open(self.filename, f"w{self.bin}") as file_:
             self.filetype.dump(self.contents, file_)
-            print(f"Writing to {self.filename}!")
+            print(f"{mess} {self.filename}!")
 
 
 class Pickle(Cache):

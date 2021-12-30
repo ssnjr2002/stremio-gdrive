@@ -1,10 +1,10 @@
 import os
 import json
 from flask import Flask
-from sgd.utils.gdrive import GoogleDrive
+from sgd.gdrive import GoogleDrive
 
 app = Flask(__name__)
-token = json.loads(os.environ.get('TOKEN'))
+token = json.loads(os.environ.get("TOKEN"))
 gdrive = GoogleDrive(token)
 
 from sgd import routes
