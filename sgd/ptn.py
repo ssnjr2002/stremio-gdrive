@@ -3,7 +3,7 @@ import PTN
 
 class parse_title:
     def __init__(self, name):
-        ptn_dict = PTN.parse(name, standardise=False)
+        ptn_dict = PTN.parse(name)
         key_list = [
             "resolution",
             "codec",
@@ -15,10 +15,14 @@ class parse_title:
             "encoder",
             "title",
             "year",
+            "remux",
         ]
 
         for key in key_list:
             setattr(self, key, ptn_dict.get(key))
+
+        # Write REMUX instead of Blu-Ray
+        self.quality = "REMUX" if self.remux else self.quality
 
         self.sortkeys = {
             "se": self.season,
