@@ -1,29 +1,16 @@
-import json
-import requests
+import lxml
+import cchardet
+import sgd.utils as ut
 from bs4 import BeautifulSoup
-from sgd.cache import Pickle
-from sgd.utils import sanitize, req_wrapper, safe_get, num_extract, is_year
+from sgd.cache import Json
 
 
 class MetadataNotFound(Exception):
     pass
 
 
-class Meta:
-    def __init__(self, stream_type, stream_id):
-        self.id = stream_id
-        self.type = stream_type
-        self.ep = None
-        self.se = None
-        self.year = None
-        self.titles = []
-
-        if self.type == "series":
-            id_split = self.id.split(":")
-            self.id = id_split[0]
-            self.ep = str(id_split[-1]).zfill(2)
-            self.se = str(id_split[-2]).zfill(2)
-
+class IMDb:
+    def __init__(self):
         self.imdb_sg_url = f"v2.sg.media-imdb.com/suggests/t/{self.id}.json"
         self.cinemeta_url = f"v3-cinemeta.strem.io/meta/{self.type}/{self.id}.json"
         self.imdb_html_url = f"imdb.com/title/{self.id}/releaseinfo?ref_=tt_dt_aka"
@@ -40,41 +27,51 @@ class Meta:
                     )
 
     def get_meta_from_imdb_html(self):
-        try:
-            imdb_html = req_wrapper(self.imdb_html_url, time_out=5)
-        except requests.exceptions.Timeout:
-            return False
-
-        soup = BeautifulSoup(imdb_html, "html.parser")
+        """
+        Scrape metadata from imdb aka page. Includes local
+        names to get more results
+        """
+        imdb_html = ut.req_wrapper(self.imdb_html_url, time_out=5)
+        soup = BeautifulSoup(imdb_html, "lxml")
         table = soup.find("table", attrs={"class": "akas-table-test-only"})
-        right_title_block = soup.find(
+        r_title_block = soup.find(
             "div", attrs={"class": "subpage_title_block__right-column"}
         )
 
-        if right_title_block:
-            h3_itemprop = right_title_block.find("h3", attrs={"itemprop": "name"})
-            h4_itemprop = right_title_block.find("h4", attrs={"itemprop": "name"})
+        if r_title_block:
+            h3_itemprop = r_title_block.find("h3", attrs={"itemprop": "name"})
+            h4_itemprop = r_title_block.find("h4", attrs={"itemprop": "name"})
 
             title = ""
             if h4_itemprop:
-                title = sanitize(h4_itemprop.find("a").text) + " "
+                # Only appears in some pages like tt1672218
+                title = ut.sanitize(h4_itemprop.find("a").text) + " "
 
             if h3_itemprop:
-                title += sanitize(h3_itemprop.find("a").text)
+                title += ut.sanitize(h3_itemprop.find("a").text)
                 self.titles.append(title)
+                # Extract start year from span text
                 span_text = h3_itemprop.find("span").text.strip()
-                years = list(filter(is_year, num_extract(span_text)))
+                years = list(filter(ut.is_year, ut.num_extract(span_text)))
                 self.year = min(years) if years else None
 
         if table:
             table_rows = table.find_all("tr")
             table_data = [tr.find_all("td") for tr in table_rows]
-            titles = set(sanitize(safe_get(td, 1).text) for td in table_data)
 
-            if safe_get(self.titles, 0):
-                self.titles = list(titles)
-            else:
-                self.titles += list(titles)
+            titles = set()
+            first_title = ut.safe_get(self.titles, 0)
+
+            for td in table_data:
+                title = ut.sanitize(ut.safe_get(td, 1).text)
+                if title and title != first_title:
+                    # Dont use titles which are just nums with 
+                    # less than 3 digits
+                    if not (title.isdigit() and len(title) < 3):
+                        titles.add(title)
+
+            limit = 29  # To "ease" gdrive batch api's suffering
+            self.titles += list(titles)[:limit]
 
         if self.titles:
             if self.type == "series" or self.year:
@@ -82,43 +79,55 @@ class Meta:
         return False
 
     def get_meta_from_imdb_sg(self):
-        meta = self.req_api(self.imdb_sg_url, key="d")
+        """Obtain metadata from imdb suggestions api"""
+        meta = ut.req_api(self.imdb_sg_url, key="d")
         if meta:
             self.set_meta(meta[0], year="y", name="l")
             return True
         return False
 
     def get_meta_from_cinemeta(self):
-        meta = self.req_api(self.cinemeta_url)
+        """Obtain metadata from cinemeta v3 api"""
+        meta = ut.req_api(self.cinemeta_url)
         if meta:
             self.set_meta(meta)
             return True
         return False
 
-    def req_api(self, url, key="meta"):
-        try:
-            r = req_wrapper(url)
-            # imbd wont return proper json sometimes so:
-            return json.loads(r[r.find("{") :].rstrip(")")).get(key)
-        except json.decoder.JSONDecodeError:
-            return dict()
-
-    def set_meta(self, meta, year="year", name="name"):
-        self.titles.add(sanitize(meta.get(name, "")))
+    def set_meta(self, meta, year="year", title="name"):
+        self.titles.append(ut.sanitize(meta.get(title, "")))
         self.year = str(meta.get(year, "")).split("–")[0]
 
 
-def CachedMeta(stream_type, stream_id):
-    meta = Pickle(f"{stream_id.split(':')[0]}.pickle")
+class Meta(IMDb):
+    def __init__(self, stream_type, stream_id):
+        self.titles = []
+        self.year = None
+        self.ep = 0
+        self.se = 0
 
-    if not meta.contents:
-        meta.contents = Meta(stream_type, stream_id)
-        meta.save("Saving Metadata")
-    else:
-        meta.contents.fetch_dest = "CACHE"
+        self.id_split = stream_id.split(":")
+        self.type = stream_type
+        self.stream_type = stream_type
 
-    print(f"Fetched metadata for {meta.contents.id} from {meta.contents.fetch_dest}:")
-    print(f"Titles ({len(meta.contents.titles)}): {meta.contents.titles}")
-    print(f"Year: {meta.contents.year}")
+        self.id = self.id_split[0]
+        if stream_type == "series":
+            self.ep = str(self.id_split[-1]).zfill(2)
+            self.se = str(self.id_split[-2]).zfill(2)
 
-    return meta.contents
+        cached = Json(f"{self.id}.json")
+        if not cached.contents:
+            IMDb.__init__(self)
+            cached.contents.update(self.__dict__)
+            cached.save()
+        else:
+            # Refresh se:ep to prevent series' from searching last cached
+            # se:ep instead of current se:ep
+            cached.contents["se"] = self.se
+            cached.contents["ep"] = self.ep
+            self.__dict__.update(cached.contents)
+            self.fetch_dest = "CACHE"
+
+        print(f"Fetched metadata for {self.id} from {self.fetch_dest}:")
+        print(f"Titles ({len(self.titles)}) -> {self.titles}")
+        print(f"Year: {self.year}")
