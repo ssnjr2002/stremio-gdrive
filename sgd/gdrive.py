@@ -19,12 +19,14 @@ class GoogleDrive:
     def qgen(string, chain="and", splitter=" ", method=None):
         out = ""
 
+        get_method = lambda _: method
+        if not method:
+            get_method = lambda w: "fullText" if w.isdigit() else "name"
+
         for word in string.split(splitter):
-            if not method:
-                method = "fullText" if word.isdigit() else "name"
             if out:
                 out += f" {chain} "
-            out += f"{method} contains '{word}'"
+            out += f"{get_method(word)} contains '{word}'"
         return out
 
     def get_query(self, sm):
