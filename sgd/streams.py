@@ -25,7 +25,6 @@ class Streams:
         for item in gdrive.results:
             self.item = item
             self.parsed = parse_title(item.get("name"))
-            self.parsed.sortkeys["size"] = item.get("size")
             self.construct_stream()
 
             if self.is_semi_valid_title(self.constructed):
@@ -95,8 +94,6 @@ class Streams:
             sort_int = res_map.get(resolution.lower()) or int(resolution[:-1])
         except (TypeError, AttributeError):
             sort_int = 1
-
-        sort_int += int(sortkeys.get("size"))
 
         ptn_name = sanitize(sortkeys.get("title", ""), "")
         name_match = any(

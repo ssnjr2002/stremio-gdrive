@@ -129,7 +129,11 @@ class GoogleDrive:
                 uids.add(uid)
                 return True
 
-            self.results = list(filter(check_dupe, response))
+            self.results = sorted(
+                filter(check_dupe, response),
+                key=lambda item: int(item.get("size")),
+                reverse=True,
+            )
 
         self.get_drive_names()
         return self.results
