@@ -1,7 +1,8 @@
 from sgd import app, gdrive
 from sgd.meta import MetadataNotFound, Meta
 from sgd.streams import Streams
-from flask import jsonify, abort
+from json import dumps
+from flask import jsonify, abort, Response
 from datetime import datetime
 
 
@@ -17,14 +18,6 @@ MANIFEST = {
 }
 
 
-def respond_with(data):
-    resp = jsonify(data)
-    resp.headers["Access-Control-Allow-Origin"] = "*"
-    resp.headers["Access-Control-Allow-Headers"] = "*"
-    resp.headers["X-Robots-Tag"] = "noindex"
-    return resp
-
-
 @app.route("/")
 def init():
     return "Addon is alive."
@@ -32,25 +25,38 @@ def init():
 
 @app.route("/manifest.json")
 def addon_manifest():
-    return respond_with(MANIFEST)
+    return common_headers(jsonify(MANIFEST))
 
 
 @app.route("/stream/<stream_type>/<stream_id>.json")
 def addon_stream(stream_type, stream_id):
-    
+
     invalid_stream_type = stream_type not in MANIFEST["types"]
     if invalid_stream_type or not stream_id[:2] == "tt":
         abort(404)
-
     try:
-        results = get_streams(stream_type, stream_id)
-        return respond_with({"streams": results})
+        resp = Response(
+            response=get_streams(stream_type, stream_id),
+            mimetype="application/json",
+        )
+        return common_headers(resp)
     except MetadataNotFound as e:
         print(f"ERROR: {e}")
         abort(404)
 
 
+def common_headers(resp_obj):
+    resp_obj.headers["Access-Control-Allow-Origin"] = "*"
+    resp_obj.headers["Access-Control-Allow-Headers"] = "*"
+    resp_obj.headers["X-Robots-Tag"] = "noindex"
+    return resp_obj
+
+
 def get_streams(stream_type, stream_id):
+    # Janky way to extend 30 second timeout:
+    # https://devcenter.heroku.com/articles/request-timeout#long-polling-and-streaming-responses
+    yield '{"streams":'
+
     start_time = datetime.now()
     time_taken = lambda st: f"{(datetime.now() - st).total_seconds():.3f}s"
 
@@ -68,4 +74,5 @@ def get_streams(stream_type, stream_id):
         f"{stream_id} -> {gdrive.query}"
     )
 
-    return streams.results
+    # Convert results to json and send it, completing the response
+    yield f"{dumps(streams.results)}}}"

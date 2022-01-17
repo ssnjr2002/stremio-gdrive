@@ -1,1 +1,1 @@
-web: gunicorn sgd:app --log-file=-
+web: gunicorn sgd:app --log-file=- --timeout 60
