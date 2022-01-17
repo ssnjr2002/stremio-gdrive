@@ -100,7 +100,6 @@ class Streams:
             ptn_name.endswith(sanitize(title, "")) for title in self.strm_meta.titles
         )
         if not name_match:
-            print(f"{ptn_name = }, {self.strm_meta.titles}")
             sort_int -= MAX_RES
 
         if self.strm_meta.type == "series":
