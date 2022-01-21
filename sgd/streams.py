@@ -15,12 +15,6 @@ class Streams:
         if not self.proxy_url:
             self.get_url = self.get_gapi_url
             self.acc_token = gdrive.get_acc_token()
-            self.behaviour_hints = {
-                "notWebReady": "true",
-                "proxyHeaders": {
-                    "request": {"Authorization": f"Bearer {self.acc_token}"}
-                },
-            }
 
         for item in gdrive.results:
             self.item = item
@@ -60,20 +54,29 @@ class Streams:
 
     def get_proxy_url(self):
         file_id = self.item.get("id")
-        file_name = self.item.get("name") or "file_name.vid"
-        return f"{self.proxy_url}/load/{file_id}/{urllib.parse.quote(file_name)}"
+        file_name = urllib.parse.quote(self.item.get("name")) or "file_name.vid"
+        return f"{self.proxy_url}/load/{file_id}/{file_name}"
 
     def get_gapi_url(self):
-        self.constructed["behaviorHints"] = self.behaviour_hints
         file_id = self.item.get("id")
-        return f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+        file_name = urllib.parse.quote(self.item.get("name")) or "file_name.vid"
+        self.constructed["behaviorHints"]["proxyHeaders"] = {
+            "request": {"Authorization": f"Bearer {self.acc_token}"}
+        }
+        return f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&file_name={file_name}"
 
     def construct_stream(self):
         self.constructed = {}
+        self.constructed["behaviorHints"] = {}
+        self.constructed["behaviorHints"]["notWebReady"] = "true"
+        resolution = self.parsed.sortkeys.get("res", "1")
+        self.constructed["behaviorHints"]["bingeGroup"] = f"gdrive-{resolution}"
+
         self.constructed["url"] = self.get_url()
         self.constructed["name"] = self.parsed.get_str(f"GDrive %resolution %quality")
         self.constructed["title"] = self.get_title()
         self.constructed["sortkeys"] = self.parsed.sortkeys
+
         return self.constructed
 
     def best_res(self, item):
