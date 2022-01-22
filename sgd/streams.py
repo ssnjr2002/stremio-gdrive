@@ -1,3 +1,4 @@
+from email.policy import default
 import os
 import urllib
 from sgd.ptn import parse_title
@@ -55,6 +56,9 @@ class Streams:
     def get_proxy_url(self):
         file_id = self.item.get("id")
         file_name = urllib.parse.quote(self.item.get("name")) or "file_name.vid"
+        self.constructed["behaviorHints"]["proxyHeaders"] = {
+            "request": {"Server": "Stremio"}
+        }
         return f"{self.proxy_url}/load/{file_id}/{file_name}"
 
     def get_gapi_url(self):
