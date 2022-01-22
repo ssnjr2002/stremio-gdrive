@@ -1,4 +1,3 @@
-from email.policy import default
 import os
 import urllib
 from sgd.ptn import parse_title
