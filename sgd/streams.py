@@ -71,7 +71,7 @@ class Streams:
     def construct_stream(self):
         self.constructed = {}
         self.constructed["behaviorHints"] = {}
-        self.constructed["behaviorHints"]["notWebReady"] = "true"
+        self.constructed["behaviorHints"]["notWebReady"] = True
         resolution = self.parsed.sortkeys.get("res", "1")
         self.constructed["behaviorHints"]["bingeGroup"] = f"gdrive-{resolution}"
 
