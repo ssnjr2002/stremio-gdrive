@@ -47,7 +47,8 @@ class Streams:
         file_size = hr_size(int(self.item.get("size")))
         drive_id = self.item.get("driveId")
         drive_name = self.gdrive.drive_names.contents.get(drive_id, "MyDrive")
-        drive_name.strip()
+        if len(drive_name) > 30 :
+            drive_name="Error"
         
         str_format = "🎥;%codec 🌈;%bitDepth;bit 🔊;%audio 👤;%encoder"
         suffix = self.parsed.get_str(str_format)
